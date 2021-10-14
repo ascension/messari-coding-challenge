@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import React from "react";
+import dayjs from "dayjs";
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
@@ -65,11 +65,18 @@ type MarketData = {
 
 type MessariAssets = MessariResponse<Array<MessariAsset>>;
 
-export const useAssetMetrics = (slugOrSymbol: string) =>
-  useSWR<MessariAssetMetrics>(
+export const useAssetMetrics = (slugOrSymbol: string) => {
+  const {
+    data: { data } = {},
+    error,
+    isValidating,
+  } = useSWR<MessariAssetMetrics>(
     `https://data.messari.io/api/v1/assets/${slugOrSymbol}/metrics`,
     fetcher
   );
+
+  return { data, error, isValidating };
+};
 
 export const useMessariAssets = () => {
   const {
@@ -81,18 +88,80 @@ export const useMessariAssets = () => {
   return { data, error, isValidating };
 };
 
-export type TimeSeriesIntervals = "1m" | "5m" | "15m" | "30m" | "1h" | "1d" | "1w";
+export type TimeSeriesIntervals =
+  | "1m"
+  | "5m"
+  | "15m"
+  | "30m"
+  | "1h"
+  | "1d"
+  | "1w";
+
+export type MessariTimeSeries = {
+  values: [
+    [
+      timestamp: number,
+      open: number,
+      close: number,
+      high: number,
+      low: number,
+      close: number,
+      volume: number
+    ]
+  ];
+};
+
+export type TimeSeriesTimespans = "1M" | "3M" | "1Y" | "YTD";
+
+const getDatesForTimespan = (timespan: TimeSeriesTimespans) => {
+  switch (timespan) {
+    case "1M": {
+      const now = dayjs();
+      return {
+        toDate: now.format("YYYY-MM-DD"),
+        fromDate: now.subtract(1, "month").format("YYYY-MM-DD"),
+        interval: "1d",
+      };
+    }
+    case "3M": {
+      const now = dayjs();
+      return {
+        toDate: now.format("YYYY-MM-DD"),
+        fromDate: now.subtract(3, "month").format("YYYY-MM-DD"),
+        interval: "1d",
+      };
+    }
+    case "YTD": {
+      const now = dayjs();
+      return {
+        toDate: now.format("YYYY-MM-DD"),
+        fromDate: now.subtract(1, "year").format("YYYY-MM-DD"),
+        interval: "1d",
+      };
+    }
+    default: {
+      const now = dayjs();
+      return {
+        toDate: now.format("YYYY-MM-DD"),
+        fromDate: now.subtract(1, "year").format("YYYY-MM-DD"),
+        interval: "1d",
+      };
+    }
+  }
+};
 
 export const useMessariTimeSeries = (
   slugOrSymbol: string,
-  interval: TimeSeriesIntervals = "1d"
+  timespan: TimeSeriesTimespans
 ) => {
+  const { toDate, fromDate, interval } = getDatesForTimespan(timespan);
+
   const {
     data: { data } = {},
     error,
     isValidating,
-  } = useSWR<MessariAssets>(
-    `https://data.messari.io/api/v1/assets/${slugOrSymbol}/metrics/price/time-series?start=2020-10-12&end=2021-10-12&interval=${interval}`,
+  } = useSWR<MessariResponse<MessariTimeSeries>>(
+    `https://data.messari.io/api/v1/assets/${slugOrSymbol}/metrics/price/time-series?start=${fromDate}&end=${toDate}&interval=${interval}`,
     fetcher
   );
 

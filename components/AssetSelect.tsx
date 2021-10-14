@@ -4,6 +4,7 @@ import Select, { Props, GroupBase } from "react-select";
 type AssetOption = {
   label: string;
   value: string;
+  id: string;
 };
 
 export const AssetSelect: React.FC<

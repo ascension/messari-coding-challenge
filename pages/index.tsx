@@ -1,7 +1,6 @@
 import Head from "next/head";
 
 import {
-  Heading,
   Container,
   Box,
   Flex,
@@ -10,7 +9,6 @@ import {
   StatNumber,
   StatGroup,
   Skeleton,
-  Text,
   Button,
   useColorMode,
   useColorModeValue,
@@ -25,20 +23,23 @@ import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import StatArrow from "../components/StatArrow";
 import {
   useMessariAssets,
+  useAssetMetrics,
   useMessariTimeSeries,
   TimeSeriesIntervals,
+  TimeSeriesTimespans,
 } from "../hooks/messari";
 import { AssetSelect } from "../components/AssetSelect";
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
-const timeframes: Array<TimeSeriesIntervals> = ["1d", "1w"];
+const timespans: Array<TimeSeriesTimespans> = ["1M", "3M", "YTD"];
 
 export default function Home() {
-  const [timeframe, setTimeframe] = useState<TimeSeriesIntervals>("1d");
+  const [timespan, setTimeframe] = useState<TimeSeriesTimespans>("YTD");
   const [selectedAsset, setSelectedAsset] = useState({
     label: "Bitcoin",
     value: "bitcoin",
+    id: "",
   });
 
   const handleTimeframeClick = useCallback(
@@ -49,32 +50,17 @@ export default function Home() {
   );
   const { colorMode, toggleColorMode } = useColorMode();
 
-  const { data, error, isValidating } = useMessariAssets();
+  const { data, isValidating } = useMessariAssets();
+  const metricsData = useAssetMetrics(selectedAsset.value);
 
-  const metricsResponse = useSWR<{
-    data: {
-      market_data: {
-        percent_change_usd_last_24_hours: number;
-        price_usd: number;
-      };
-      all_time_high: {
-        price: number;
-        percent_down: number;
-        days_since: number;
-      };
-    };
-  }>(
-    `https://data.messari.io/api/v1/assets/${selectedAsset.value}/metrics`,
-    fetcher
-  );
+  const timeSeries = useMessariTimeSeries(selectedAsset.value, timespan);
 
-  const timeSeries = useMessariTimeSeries(selectedAsset.value, timeframe);
+  const allTimeHigh = get(metricsData, "data.all_time_high");
 
-  const allTimeHigh = get(metricsResponse, "data.data.all_time_high");
-
-  const assetOptions = data?.map(({ name, slug }) => ({
+  const assetOptions = data?.map(({ name, slug, id }) => ({
     label: name,
     value: slug,
+    id,
   }));
 
   return (
@@ -92,10 +78,8 @@ export default function Home() {
         <link rel="icon" href="/favicon-96x96.png" />
       </Head>
 
-      <Box as="main" p={4}>
+      <Box as="main" py={4}>
         <Flex w="full" justify="space-between">
-          <Heading>Overview</Heading>
-
           <AssetSelect
             options={assetOptions ?? []}
             isLoading={!data || isValidating}
@@ -126,21 +110,18 @@ export default function Home() {
             <StatLabel>Current Price</StatLabel>
             <StatNumber>
               <Skeleton
-                isLoaded={get(
-                  metricsResponse,
-                  "data.data.market_data.price_usd"
-                )}
+                isLoaded={get(metricsData, "data.market_data.price_usd")}
               >
-                {numeral(
-                  get(metricsResponse, "data.data.market_data.price_usd")
-                ).format("$0,0.00")}
+                {numeral(get(metricsData, "data.market_data.price_usd")).format(
+                  "$0,0.00"
+                )}
               </Skeleton>
             </StatNumber>
             <StatArrow
-              isLoaded={get(metricsResponse, "data.data.market_data.price_usd")}
-              percentage={get<typeof metricsResponse, any, number>(
-                metricsResponse,
-                "data.data.market_data.percent_change_usd_last_24_hours",
+              isLoaded={get(metricsData, "data.market_data.price_usd")}
+              percentage={get<typeof metricsData, any, number>(
+                metricsData,
+                "data.market_data.percent_change_usd_last_24_hours",
                 0
               )}
             />
@@ -156,7 +137,7 @@ export default function Home() {
             bg={useColorModeValue("white", "#15181C")}
             alignSelf="stretch"
           >
-            <StatLabel>All time high(ATH)</StatLabel>
+            <StatLabel>All Time High(ATH)</StatLabel>
             <StatNumber>
               <Skeleton isLoaded={allTimeHigh?.price}>
                 {numeral(allTimeHigh?.price).format("$0,0.00")}
@@ -177,7 +158,7 @@ export default function Home() {
             borderRadius="lg"
             alignSelf="stretch"
           >
-            <StatLabel>Days since ATH</StatLabel>
+            <StatLabel>Days Since ATH</StatLabel>
             <StatNumber>
               <Skeleton isLoaded={allTimeHigh?.days_since}>
                 {allTimeHigh?.days_since}
@@ -189,18 +170,18 @@ export default function Home() {
       </Box>
       <Flex height="lg" flexDirection="column">
         <Flex justifyContent="flex-end" py={2}>
-          {timeframes.map((tf, index) => (
+          {timespans.map((ts, index) => (
             <Button
               key={index}
               size="sm"
               variant="ghost"
               mr={2}
-              isActive={tf === timeframe}
-              value={tf}
+              isActive={ts === timespan}
+              value={ts}
               onClick={handleTimeframeClick}
               textTransform="uppercase"
             >
-              {tf}
+              {ts}
             </Button>
           ))}
         </Flex>
