@@ -81,8 +81,8 @@ export default withTooltip<AreaProps & { data: any }, TooltipData>(
     const tooltipStyles = {
       ...defaultStyles,
       background,
-      border: "1px solid white",
-      color: "white",
+      border: `1px solid ${useColorModeValue("#000000", "#ffffff")}`,
+      color: useColorModeValue("#000000", "#ffffff"),
     };
 
     // scales
