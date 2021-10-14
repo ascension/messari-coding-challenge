@@ -23,15 +23,19 @@ import numeral from "numeral";
 import { ParentSize } from "@visx/responsive";
 import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import StatArrow from "../components/StatArrow";
-import { useMessariAssets, useMessariTimeSeries } from "../hooks/messari";
+import {
+  useMessariAssets,
+  useMessariTimeSeries,
+  TimeSeriesIntervals,
+} from "../hooks/messari";
 import { AssetSelect } from "../components/AssetSelect";
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
-const timeframes = ["1d", "1w"];
+const timeframes: Array<TimeSeriesIntervals> = ["1d", "1w"];
 
 export default function Home() {
-  const [timeframe, setTimeframe] = useState("1d");
+  const [timeframe, setTimeframe] = useState<TimeSeriesIntervals>("1d");
   const [selectedAsset, setSelectedAsset] = useState({
     label: "Bitcoin",
     value: "bitcoin",

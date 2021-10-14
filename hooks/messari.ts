@@ -81,7 +81,7 @@ export const useMessariAssets = () => {
   return { data, error, isValidating };
 };
 
-type TimeSeriesIntervals = "1m" | "5m" | "15m" | "30m" | "1h" | "1d" | "1w";
+export type TimeSeriesIntervals = "1m" | "5m" | "15m" | "30m" | "1h" | "1d" | "1w";
 
 export const useMessariTimeSeries = (
   slugOrSymbol: string,
